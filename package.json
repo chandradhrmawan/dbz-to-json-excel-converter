@@ -1,0 +1,23 @@
+{
+  "name": "dbf-reader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon --experimental-json-modules index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@filip96/node-dbf": "^1.1.5",
+    "adm-zip": "^0.5.9",
+    "dbf-reader": "^1.0.3",
+    "express": "^4.18.1",
+    "fs": "^0.0.1-security",
+    "json2xls": "^0.1.2",
+    "nodemon": "^2.0.19",
+    "unzipper": "^0.10.11"
+  }
+}
