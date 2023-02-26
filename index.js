@@ -1,21 +1,21 @@
-import express from "express";
+import express, { json } from "express";
 import { Parser } from '@filip96/node-dbf';
 import unzipper from "unzipper";
 import fs from "fs";
-import json2xls from 'json2xls';
-// import jsonData from "./json/dbzd_akun.json";
+import json2xls from 'json2xls'
+import { uuid } from 'uuidv4';
 
-const app = express()
-const port = 3000
+// const app = express()
+// const port = 3000
 
-app.get('/', (req, res) => {
-    // getAlldir('D:/POK-APP/dbf-reader/json', 'json');
-    res.json('success')
-})
+// app.get('/', (req, res) => {
+//     getAlldir('D:/POK-APP/dbf-reader/json', 'json');
+//     res.json('success')
+// })
 
-app.listen(port, () => {
-    console.log(`app listening on port ${port}`)
-})
+// app.listen(port, () => {
+//     console.log(`app listening on port ${port}`)
+// })
 
 const getAlldir = async (dirPath, tpye = 'dbz') => {
     fs.readdirSync(dirPath).forEach(file => {
@@ -70,7 +70,64 @@ const parseFile = (filePath, fileName) => {
     parser.parse();
 }
 
-// await zipReader('D:/POK-REFF/uploader POK/Satker_05_498623_20221110_22.zip'); /* unzip zip file */
+const toSql = async () => {
+    let data = await fs.readFileSync('./json/tr_linkdesc.json')
+    let jsonData = JSON.parse(data)
+
+    let postData = []
+    let avoidData = ['@sequenceNumber', '@deleted', '\r', '', '_NullFlags']
+    for (let index = 0; index < jsonData.length; index++) {
+        avoidData.map(row => delete jsonData[index][row])
+        jsonData[index]['ACTIVE_IND'] = 'Y'
+        jsonData[index]['UID'] = uuid()
+        postData.push(jsonData[index])
+    }
+
+    // generate to sql text
+    let sqlData = []
+    for (let index = 0; index < postData.length; index++) {
+        // const element = postData[index];
+        let sqlText = `INSERT INTO pok_online.tr_linkdesc (`
+        for (const key in postData[index]) {
+            if (Object.hasOwnProperty.call(postData[index], key)) {
+                sqlText += `${key},`
+            }
+        }
+        sqlText = sqlText.slice(0, -1);
+        sqlText += `) VALUES(`
+
+        for (const key in postData[index]) {
+            if (Object.hasOwnProperty.call(postData[index], key)) {
+                let text = postData[index][key] ? postData[index][key].toString() : '';
+                text = text.replace("'", "");
+                sqlText += `'${text}',`
+            }
+        }
+
+        sqlText = sqlText.slice(0, -1);
+        sqlText += `)`
+
+        sqlData.push(sqlText)
+    }
+
+    fs.writeFile('D:/POK-APP/dbf-reader/sql/tr_linkdesc.sql', sqlData.join(`;\n`), 'ascii',
+        function (err) {
+            if (err) throw err;
+            console.log("Data is written to file successfully.")
+        });
+}
+
+
+
+async function main(name) {
+    await zipReader(`D:/POK-REFF/uploader POK/${name}.zip`); /* unzip zip file */
+    await getAlldir('D:/POK-APP/dbf-reader/json', 'json'); /* conver json to excel */
+    await getAlldir('D:/POK-APP/dbf-reader/unzip', 'dbz'); /* conver dbz to json */
+}
+
+await main('Satker_21_485474_20230206_22_sem1_rev2OK')
+
+
 // parseFile('D:/POK/Satker_05_498631_20220726_22_awalOK/dbzd_akun.dbz', 'dbzd_akun'); /* testing conver dbz to json zip file */
-// getAlldir('D:/POK-APP/dbf-reader/unzip','dbz'); /* conver dbz to json */
-getAlldir('D:/POK-APP/dbf-reader/json', 'json'); /* conver json to excel */
+// getAlldir('D:/POK-APP/dbf-reader/json', 'json'); /* convert single df to excel */
+// toSql()
