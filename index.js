@@ -5,18 +5,6 @@ import fs from "fs";
 import json2xls from 'json2xls'
 import { uuid } from 'uuidv4';
 
-// const app = express()
-// const port = 3000
-
-// app.get('/', (req, res) => {
-//     getAlldir('D:/POK-APP/dbf-reader/json', 'json');
-//     res.json('success')
-// })
-
-// app.listen(port, () => {
-//     console.log(`app listening on port ${port}`)
-// })
-
 const getAlldir = async (dirPath, tpye = 'dbz') => {
     fs.readdirSync(dirPath).forEach(file => {
         let fullPath = `${dirPath}/${file}`;
@@ -120,12 +108,12 @@ const toSql = async () => {
 
 
 async function main(name) {
-    await zipReader(`D:/POK-REFF/uploader POK/${name}.zip`); /* unzip zip file */
+    // await zipReader(`D:/POK-REFF/uploader POK/${name}.zip`); /* unzip zip file */
+    // await getAlldir('D:/POK-APP/dbf-reader/unzip', 'dbz'); /* conver dbz to json */
     await getAlldir('D:/POK-APP/dbf-reader/json', 'json'); /* conver json to excel */
-    await getAlldir('D:/POK-APP/dbf-reader/unzip', 'dbz'); /* conver dbz to json */
 }
 
-await main('Satker_21_485474_20230206_22_sem1_rev2OK')
+await main('Satker_08_498580_20230228_22')
 
 
 // parseFile('D:/POK/Satker_05_498631_20220726_22_awalOK/dbzd_akun.dbz', 'dbzd_akun'); /* testing conver dbz to json zip file */
