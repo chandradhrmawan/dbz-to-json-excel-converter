@@ -1,23 +1,25 @@
-import express, { json } from "express";
 import { Parser } from '@filip96/node-dbf';
 import unzipper from "unzipper";
 import fs from "fs";
-import json2xls from 'json2xls'
-import { uuid } from 'uuidv4';
+import json2xls from 'json2xls';
+import path from "node:path";
 
-const getAlldir = async (dirPath, tpye = 'dbz') => {
-    fs.readdirSync(dirPath).forEach(file => {
+const convertDbzToJson = async (dirPath) => {
+    fs.readdirSync(dirPath).forEach(async (file) => {
         let fullPath = `${dirPath}/${file}`;
-        if (tpye == 'dbz') {
-            let splitPath = file.split('.');
-            parseFile(fullPath, splitPath[0]);
-        } else {
-            let rawdata = fs.readFileSync(fullPath);
-            let parseData = JSON.parse(rawdata);
-            let xls = json2xls(parseData);
-            let splitPath = file.split('.');
-            fs.writeFileSync(`D:/POK-APP/dbf-reader/excel/${splitPath[0]}.xls`, xls, 'binary');
-        }
+        let splitPath = file.split('.');
+        await parseFile(fullPath, splitPath[0]);
+    });
+}
+
+const convertJsonToXlsx = async (dirPath,) => {
+    fs.readdirSync(dirPath).forEach(async (file) => {
+        let fullPath = `${dirPath}/${file}`;
+        let rawdata = fs.readFileSync(fullPath);
+        let parseData = JSON.parse(rawdata);
+        let xls = json2xls(parseData);
+        let splitPath = file.split('.');
+        fs.writeFileSync(`./excel/${splitPath[0]}.xls`, xls, 'binary');
     });
 }
 
@@ -33,7 +35,7 @@ const zipReader = async (filePath) => {
     }
 }
 
-const parseFile = (filePath, fileName) => {
+const parseFile = async (filePath, fileName) => {
 
     let parser = new Parser(filePath);
     let jsonData = []
@@ -58,64 +60,33 @@ const parseFile = (filePath, fileName) => {
     parser.parse();
 }
 
-const toSql = async () => {
-    let data = await fs.readFileSync('./json/tr_linkdesc.json')
-    let jsonData = JSON.parse(data)
-
-    let postData = []
-    let avoidData = ['@sequenceNumber', '@deleted', '\r', '', '_NullFlags']
-    for (let index = 0; index < jsonData.length; index++) {
-        avoidData.map(row => delete jsonData[index][row])
-        jsonData[index]['ACTIVE_IND'] = 'Y'
-        jsonData[index]['UID'] = uuid()
-        postData.push(jsonData[index])
-    }
-
-    // generate to sql text
-    let sqlData = []
-    for (let index = 0; index < postData.length; index++) {
-        // const element = postData[index];
-        let sqlText = `INSERT INTO pok_online.tr_linkdesc (`
-        for (const key in postData[index]) {
-            if (Object.hasOwnProperty.call(postData[index], key)) {
-                sqlText += `${key},`
-            }
+const clearDir = async (directory = './unzip') => {
+    fs.readdir(directory, (err, files) => {
+        if (err) throw err;
+        for (const file of files) {
+            fs.unlink(path.join(directory, file), (err) => {
+                if (err) throw err;
+            });
         }
-        sqlText = sqlText.slice(0, -1);
-        sqlText += `) VALUES(`
-
-        for (const key in postData[index]) {
-            if (Object.hasOwnProperty.call(postData[index], key)) {
-                let text = postData[index][key] ? postData[index][key].toString() : '';
-                text = text.replace("'", "");
-                sqlText += `'${text}',`
-            }
-        }
-
-        sqlText = sqlText.slice(0, -1);
-        sqlText += `)`
-
-        sqlData.push(sqlText)
-    }
-
-    fs.writeFile('D:/POK-APP/dbf-reader/sql/tr_linkdesc.sql', sqlData.join(`;\n`), 'ascii',
-        function (err) {
-            if (err) throw err;
-            console.log("Data is written to file successfully.")
-        });
+    });
 }
-
 
 
 async function main(name) {
-    // await zipReader(`D:/POK-REFF/uploader POK/${name}.zip`); /* unzip zip file */
-    // await getAlldir('D:/POK-APP/dbf-reader/unzip', 'dbz'); /* conver dbz to json */
-    await getAlldir('D:/POK-APP/dbf-reader/json', 'json'); /* conver json to excel */
+
+    await Promise.all([
+        clearDir('./unzip'),
+        clearDir('./json'),
+        clearDir('./excel')
+    ])
+
+    await zipReader(`D:/POK-REFF/uploader POK/${name}.zip`); /* unzip zip file */
+    await convertDbzToJson('./unzip'); /* conver dbz to json */
+
+    setTimeout(() => {
+        convertJsonToXlsx('./json'); /* conver json to excel */
+    }, 1000);
+
 }
 
-await main('Satker_08_498580_20230228_22')
-
-
-// parseFile('D:/POK/Satker_05_498631_20220726_22_awalOK/dbzd_akun.dbz', 'dbzd_akun'); /* testing conver dbz to json zip file */
-// getAlldir('D:/POK-APP/dbf-reader/json', 'json'); /* convert single df to excel */
-// toSql()
+await main('Satker_16_403481_20230317_22')
