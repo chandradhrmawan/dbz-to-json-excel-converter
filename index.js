@@ -85,8 +85,8 @@ async function main(name) {
 
     setTimeout(() => {
         convertJsonToXlsx('./json'); /* conver json to excel */
-    }, 1000);
+    }, 4000);
 
 }
 
-await main('Satker_16_403481_20230317_22')
+await main('Satker_18_498664_20230402_22')
